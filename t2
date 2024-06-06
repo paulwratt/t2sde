@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406071050"
+T2_CLI_VERSION="2406071147"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -225,9 +225,25 @@ if [ "$1" = "info" ]; then
   exit
 fi
 
-if [ "$1" = "istall" -a -z "$2" ]; then
+if [ "$1" = "install" -a -z "$2" ]; then
+  SDE_T2SDE="/etc/SDE-T2SDE"
   echo
-
+  printf "   Default T2SDE:"
+  cat "${SDE_T2SDE}" | grep -v "^#"
+  printf "     Other T2SDE:"
+  cat "${SDE_T2SDE}" | grep "^#"
+  printf "      This T2SDE:"
+  echo "${T2SDE_location}"
+  printf "          \$TDSDE:"
+  echo "${T2SDE}"
+  printf "    /etc/profile:"
+  cat "/etc/profile" | grep "\$T2SDE"; echo
+  printf "      ~/.profile:"
+  cat "${HOME}/.profile" | grep "\$T2SDE"
+  printf "/etc/bash.bashrc:"
+  cat "/etc/bash.bashrc" | grep "\$T2SDE"
+  printf "       ~/.bashrc:"
+  cat "${HOME}/.bashrc" | grep "\$T2SDE"
   exit
 fi
 
