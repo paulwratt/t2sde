@@ -1,0 +1,316 @@
+#!/bin/bash
+
+T2SDE="${T2SDE}"
+T2SDE_installed="${T2SDE}"
+[ -z "${T2SDE}" ] && T2SDE_installed="not installed"
+
+T2SDE_location="$(dirname $0)"
+[ -z "${T2SDE_location}" -o "${T2SDE_location}" = "." ] && T2SDE_location="$(pwd)"
+
+SDE_FORCE=""
+if [ "$1" = "--force" -o "$1" = "-force" -o "$1" = "force" ]; then
+  SDE_FORCE="-force"
+  shift
+fi
+
+SDE_DRYRUN=""
+if [ "$1" = "--dry-run" -o "$1" = "-dry-run" -o "$1" = "dry-run" ]; then
+  SDE_DRYRUN="-dry-run"
+  shift
+fi
+
+echo "T2SDE Package Manager"
+echo "\$T2SDE: ${T2SDE_installed}"
+
+if [ -z "$1" -o "$1" = "--help" ]; then
+  echo "usage: ./t2 info			show information about T2SDE"
+  echo "       ./t2 [--dry-run] install		test add location to system as default"
+  echo "       ./t2 --force install		add location to system as default"
+  echo "       ./t2 update			update T2SDE to latest version"
+  echo "       ./t2 [--dryrun] upgrade		test upgrade T2 packages to latest"
+  echo "       ./t2 --force upgrade		actually upgrade installed T2 packages"
+  echo "       ./t2 install _pkg_		install package name _pkg_"
+  echo "       ./t2 --dry-run install _pkg_	test install package name _pkg_"
+  echo "       ./t2 --force install _pkg_	re-install package name _pkg_"
+  echo "       ./t2 search _txt_		search for _txt_ in packages"
+  echo "       ./t2 list | available		list all available packages"
+  echo "       ./t2 sections			list package sections / groups"
+  echo "       ./t2 --list | installed		list installed packages"
+  echo "       ./t2 --help-long			show underlying execution in-depth"
+  echo "       ./t2 --help=_help_ 		show individual option in-depth"
+  echo "       ./t2 --help=install-pkg		show package install in-depth"
+  echo "_pkg_: package name"
+  echo "_help_: info install update upgrade install-pkg search available installed"
+  exit
+fi
+
+if [ "$1" = "--help-long" -o -n "$(echo "$1" | grep "^--help=" )" ]; then
+
+if [ "$1" = "--help-long" -o "$1" = "--help=info" ]; then
+  echo "./t2 info"
+  echo "  search for '/etc/SDE-VERSION' and folder '/etc/SDE-CONFIG', then "
+  echo "  extract environment variables from '/etc/SDE-CONFIG/config', and "
+  echo "  then try to locate 'var/adm' and determine if '.svn' or '.git' are "
+  echo "  in './t2' directory, get revision, count total available packages "
+  echo "  and the number of package sections, finally try to count installed "
+  echo "  packages and number of downloaded src files. Also check to see if "
+  echo "  the package 't2-src' is installed and the SVN has be cloned. Lastly "
+  echo "  give some info about the current T2SDE location."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=install" ]; then
+  echo "./t2 install"
+  echo "  test for \$T2SDE environment variable, and if so, see whats in the "
+  echo "  file '/etc/SDE-LOCATION' and wheather current './t2' directory is "
+  echo "  already present, and what the default is (un-remarked line #), and "
+  echo "  if '--force install' then actually write data to the system, other-"
+  echo "  wise its just a dry-run ('--dry-run install' same as 'install')."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=update" ]; then
+  echo "./t2 update"
+  echo "  checks to see if './t2' directory is a repository, if so then do "
+  echo "  'svn update' if its an SVN repo, or 'git pull' if its GIT repo."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=upgrade" ]; then
+  echo "./t2 upgrade"
+  echo "  runs 'scripts/Emerge-Pkg -missing=yes -system', which is the same" 
+  echo "  as 'scripts/Emerge-Pkg -dry-run -missing=yes -system', builds from "
+  echo "  source, downloads if not already present in 'download/mirror/?/..'."
+  echo "  you can pre-empt mirror download, by linking 'mirror' to a folder "
+  echo "  that already contains a copy of download mirror, which may include "
+  echo "  previously download sources that are _not_ on the mirror server. The "
+  echo "  layout of the mirror folder is the same as the download mirror: "
+  echo "  http://dl.t2sde.org/mirror/trunk/"
+  echo "  be aware that the size of the current download mirror is 32G and that "
+  echo "  does not include large packages (like 'chromium') or packages that "
+  echo "  change often (eg. 'firefox', 'gcc', 'clang', 'qt6-base' etc)."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=install-pkg" ]; then
+  echo "./t2 install _pkg_"
+  echo "  if '_pkg_' name is found, build from downloaded source package, using "
+  echo "   'scripts/Emerge-Pkg -missing=only _pkg_'"
+  echo "./t2 --dry-run install _pkg_"
+  echo "  if '_pkg_' name is found, perform a test build from downloaded source "
+  echo "  package, using 'scripts/Emerge-Pkg -dry-run -missing=only _pkg_' but "
+  echo "  _dont_ install anything to the system."
+  echo "./t2 --force install _pkg_"
+  echo "  if '_pkg_' name is found, re-build the package from downloaded source, "
+  echo "  using 'scripts/Emerge-Pkg -force -missing=only _pkg_' and reinstall it."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=search" ]; then
+  echo "./t2 search _txt_"
+  echo "  performs './t2 list | grep @$', so it is 'apt-cach search ..' compatible "
+  echo "  output, Name, Description, and bonus Version."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=available" ]; then
+  echo "./t2 list"
+  echo "  a list of available packages in 'apt-cache search \"^[[:alnum:]]+\"' "
+  echo "  compatible format, with aditional bonus of version number at the end."
+  echo "./t2 available"
+  echo "  just a plain list of '_section_/_pkg_' found in './packages/'."
+  echo "./t2 sections"
+  echo "  a plain list of '_section_' found in './packages/'."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=installed" ]; then
+  echo "./t2 --list"
+  echo "  output a list of installed packages in 'dpkg --list' compatible layout "
+  echo "  which includes Version, Architecture, Description as well as Name of "
+  echo "  the package, includes the top 4 text lines and column titles row and "
+  echo "  the underline row."
+  echo "./t2 installed"
+  echo "  just a plain list of package names, top 2 lines containing a single "
+  echo "  space if you want _only_ the installed package names."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=build" ]; then
+  echo "./t2 build _target_"
+  echo "  (coming soon)"
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=download" ]; then
+  echo "./t2 download _pkg_"
+  echo "  (coming soon)"
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=set" ]; then
+  echo "./t2 set _opt_"
+  echo "  (coming soon)"
+fi
+
+  exit
+fi
+
+#echo "\$T2SDE: ${T2SDE_installed}"
+
+if [ "$1" = "info" ]; then
+  echo
+  echo "T2 System:"
+  SDE_VERSION="/etc/SDE-VERSION"
+  [ -e "${SDE_VERSION}" ] && echo " ${SDE_VERSION}:$(cat "${SDE_VERSION}")"
+  SDE_CONFIG="/etc/SDE-CONFIG"
+  if [ -d "${SDE_CONFIG}" ]; then
+    echo "  ${SDE_CONFIG}:present"
+    . "${SDE_CONFIG}/config"
+    echo
+    echo "T2 Origin:"
+    echo "         ISO ID:${SDECFG_ID}"
+    echo "       Packages:$(cat "${SDE_CONFIG}/packages" | wc -l)"
+    echo "         Target:${SDECFG_TARGET}"
+    echo "   Architecture:${SDECFG_ARCH}"
+    if [ "${SDECFG_SOFTFLOAT}" = "1" ]; then SDE_FLOAT="software"; else SDE_FLOAT="hardware"; fi
+    echo " Floating Point:${SDE_FLOAT}"
+    echo "       Template:${SDECFG_PKGSEL_TMPL}"
+    echo "       Compiler:${SDECFG_DEFAULT_CC}"
+    echo "         Kernel:${SDECFG_KERNEL}"
+    echo "           LibC:${SDECFG_LIBC}"
+    if [ "${SDECFG_MULTILIB}" = "1" ]; then SDE_MULTILIB="yes"; else SDE_MULTILIB="no"; fi
+    echo "      Multi-lib:${SDE_MULTILIB}"
+    echo "           Init:${SDECFG_INIT}"
+    SDE_ADM="/var/adm"
+  else
+    echo "${SDE_CONFIG}:not present"
+    SDE_USER="$HOME/t2sde"
+    [ -d "${SDE_USER}" ] && echo "T2 Origin: User Mode" 
+    SDE_ADM="${SDE_USER}/var/adm"
+  fi
+  echo
+  echo "T2 Admin:"
+  [ -d "${SDE_ADM}" ] && echo "   var/adm:${SDE_ADM}"
+  SDE_INSTALLED="0"
+  [ -d "${SDE_ADM}/packages" ] && SDE_INSTALLED="$(ls -1 "${SDE_ADM}/packages/" | wc -l)"
+  echo " Installed:${SDE_INSTALLED}"
+  SDE_T2SRC_PKG="not "
+  [ -f "${SDE_ADM}/packages/t2-src" ] && SDE_T2SRC_PKG=""
+  echo "  't2-src':${SDE_T2SRC_PKG}installed"
+  [ -z "${SDE_T2SRC_PKG}" ] && SDE_T2SRC_PKG="/$(head -n 1 "${SDE_ADM}/flists/t2-src" | cut -d \  -f 2)"; echo "    t2-src:${SDE_T2SRC_PKG}"
+  SDE_T2SRC_CLONED="no"
+  [ -d "${SDE_T2SRC_PKG}/scripts" ] && SDE_T2SRC_CLONED="yes"; echo "    cloned:${SDE_T2SRC_CLONED}"
+  echo
+  echo "This T2SDE:"
+  SDE_SVN="no"
+  if [ -d .svn ]; then SDE_SVN="$(svn info | grep "^Revision: " | cut -d \  -f 2)"; fi 
+  echo "        SVN version:${SDE_SVN}"
+  SDE_GIT="no"
+  if [ -d .git ]; then SDE_GIT="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"; fi 
+  echo "        GIT version:${SDE_GIT}"
+  SDE_PKGS="$(find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+/[[:alnum:]]+" | wc -l)"
+  echo "     T2SDE Packages:${SDE_PKGS}"
+  SDE_SECT="$(find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+$" | wc -l)"
+  echo "   Package Sections:${SDE_SECT}"
+  SDE_SRCS="$(find ./download/mirror -type f | wc -l)"
+  echo " Downloaded Sources:${SDE_SRCS}"
+  SDE_SRC_SIZE="$(du -hs ./download/mirror | cut -f 1)"
+  echo "    Downloaded Size:${SDE_SRC_SIZE}"
+  echo "    \$T2SDE Location:${T2SDE_location}"
+  echo
+  exit
+fi
+
+if [ "$1" = "istall" -a -z "$2" ]; then
+  echo
+
+  exit
+fi
+
+if [ "$1" = "update" ]; then
+  SDE_REVISION="unknown"
+  if [ -d .svn ]; then
+    svn update
+    SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
+  elif [ -d .git ]; then
+    git pull
+    SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
+  else
+    echo "T2SDE Update: not a repository"
+  fi
+  echo "Revision:${SDE_REVISION}"
+  exit
+fi
+
+if [ "$1" = "upgrade" -a -z "$2" ]; then
+  scripts/Emerge-Pkg ${SDE_FORCE} ${SDE_DRYRUN} -missing=yes -system
+  exit
+fi
+
+if [ "$1" = "install" -a ! -z "$2" ]; then
+  shift
+  scripts/Emerge-Pkg $SDE_FORCE -missing=only $@ 
+  exit
+fi
+
+if [ "$1" = "search" ]; then
+  [ -z "$2" ] && echo "E: you must have at least one search pattern" && exit
+  shift
+  ./t2 list | tail -n +2 | grep $@
+  exit
+fi
+
+if [ "$1" = "list" -o "$1" = "available" ]; then
+
+  if [ "$1" = "available" ]; then
+    find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+/[[:alnum:]]+" | cut -d \/ -f 2-
+    exit
+  fi
+
+  # output format compatible with 'apt-cache search _regex_'
+  if [ "$1" = "list" ]; then
+    P="$(find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+/[[:alnum:]]+")"
+    for F in $P; do
+      N="$(basename "${F}")"
+      [ ! -f "${F}/${N}.desc" ] && continue
+      D="$(cat "${F}/${N}.desc" | grep -m 1 "^\[I\] " | cut -d \  -f 2- )"
+#     V="$(cat "${F}/${N}.desc" | grep -m 1 "^\[V\] " | cut -d \  -f 2)"
+      V="$(cat "${F}/${N}.desc" | grep -m 1 "^\[V\] ")"
+      echo "${N} - ${D} ${V}"
+    done
+    exit
+  fi
+
+fi
+
+if [ "$1" = "sections" -o "$1" = "section" ]; then
+  find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+$" | cut -d \/ -f 2
+  exit
+fi
+
+if [ "$1" = "--list" -o "$1" = "installed" ]; then
+  SDE_ADM=""
+  [ -d "$HOME/t2sde/var/adm" ] && SDE_ADM="$HOME/t2sde/var/adm"
+  [ -d "/var/adm" ] && SDE_ADM="/var/adm"
+
+  if [ "$1" = "installed" ]; then
+    ls -1 "${SDE_ADM}/packages/"
+    exit
+  fi
+
+  # output format compatible with 'dpkg --list'
+  if [ "$1" = "--list" ]; then
+    echo "'dpkg --list' compatible output"
+    P="$(ls -1 "${SDE_ADM}/packages/")"
+    L="$(echo "$P" | wc -L)"
+    M="$(grep -r "^\[V\] " ${SDE_ADM}/descs/ | cut -d \  -f 2 | wc -L)"
+    N="$(echo "Architecture" | wc -L)"
+    O="$(grep -r "^\[I\] " ${SDE_ADM}/descs/ | cut -d \  -f 2- | wc -L)"
+    A="$(grep "^T2 Version and Architecture: " "${SDE_ADM}/packages/00-dirtree" | cut -d \: -f 2 | cut -d \  -f 3)"
+    printf "    %-${L}s %-${M}s %-${N}s %-${O}s\n" "Name" "Version" "Architecture" "Description"
+    printf "+++-"; printf "=%.0s" $(seq 1 $L); printf -- '-'; printf "=%.0s" $(seq 1 $M); printf -- '-'; printf "=%.0s" $(seq 1 $N); printf -- '-';
+    printf "=%.0s" $(seq 1 $O); echo
+    for F in $P; do
+      E="${SDE_ADM}/descs/${F}"
+      V="$(cat "${E}" | grep -m 1 "^\[V\] " | cut -d \  -f 2)"
+      D="$(cat "${E}" | grep -m 1 "^\[I\] " | cut -d \  -f 2-)"
+      printf "ii  %-${L}s %-${M}s %-${N}s %-${O}s\n" "${F}" "${V}" "${A}" "${D}"
+    done
+    exit
+  fi
+
+fi
+
+exit
+
