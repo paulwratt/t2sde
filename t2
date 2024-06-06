@@ -1,5 +1,7 @@
 #!/bin/bash
 
+T2_CLI_VERSION="2406071050"
+
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
 [ -z "${T2SDE}" ] && T2SDE_installed="not installed"
@@ -39,8 +41,14 @@ if [ -z "$1" -o "$1" = "--help" ]; then
   echo "       ./t2 --help-long			show underlying execution in-depth"
   echo "       ./t2 --help=_help_ 		show individual option in-depth"
   echo "       ./t2 --help=install-pkg		show package install in-depth"
+  echo "       ./t2 --vesion			show script version"
   echo "_pkg_: package name"
   echo "_help_: info install update upgrade install-pkg search available installed"
+  exit
+fi
+
+if [ "$1" = "--version" -o "$1" = "-version" -o "$1" = "version" ]; then
+  echo "version:${T2_CLI_VERSION}"
   exit
 fi
 
@@ -99,6 +107,11 @@ if [ "$1" = "--help-long" -o "$1" = "--help=install-pkg" ]; then
   echo "./t2 --force install _pkg_"
   echo "  if '_pkg_' name is found, re-build the package from downloaded source, "
   echo "  using 'scripts/Emerge-Pkg -force -missing=only _pkg_' and reinstall it."
+fi
+
+if [ "$1" = "--help-long" -o "$1" = "--help=remove-pkg" ]; then
+  echo "./t2 remove _pkg_"
+  echo "  (coming soon)"
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=search" ]; then
@@ -241,6 +254,18 @@ fi
 if [ "$1" = "install" -a ! -z "$2" ]; then
   shift
   scripts/Emerge-Pkg $SDE_FORCE -missing=only $@ 
+  exit
+fi
+
+if [ "$1" = "remove" -a ! -z "$2" ]; then
+  SDE_ADM=""
+  [ -d "$HOME/t2sde/var/adm" ] && SDE_ADM="$HOME/t2sde/var/adm"
+  [ -d "/var/adm" ] && SDE_ADM="/var/adm"
+
+  [ ! -f "${SDE_ADM}/flists/$2" ] && echo "package not found: $1"
+
+  cat "${SDE_ADM}/flists/$2"
+  
   exit
 fi
 
