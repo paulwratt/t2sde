@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406071147"
+T2_CLI_VERSION="2406151104"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -26,14 +26,14 @@ echo "\$T2SDE: ${T2SDE_installed}"
 
 if [ -z "$1" -o "$1" = "--help" ]; then
   echo "usage: ./t2 info			show information about T2SDE"
-  echo "       ./t2 [--dry-run] install		test add location to system as default"
-  echo "       ./t2 --force install		add location to system as default"
+  echo "       ./t2 [-dry-run] install		test add location to system as default"
+  echo "       ./t2 -force install		add location to system as default"
   echo "       ./t2 update			update T2SDE to latest version"
-  echo "       ./t2 [--dryrun] upgrade		test upgrade T2 packages to latest"
-  echo "       ./t2 --force upgrade		actually upgrade installed T2 packages"
+  echo "       ./t2 [-dryrun] upgrade		test upgrade T2 packages to latest"
+  echo "       ./t2 -force upgrade		actually upgrade installed T2 packages"
   echo "       ./t2 install _pkg_		install package name _pkg_"
-  echo "       ./t2 --dry-run install _pkg_	test install package name _pkg_"
-  echo "       ./t2 --force install _pkg_	re-install package name _pkg_"
+  echo "       ./t2 -dry-run install _pkg_	test install package name _pkg_"
+  echo "       ./t2 -force install _pkg_	re-install package name _pkg_"
   echo "       ./t2 search _txt_		search for _txt_ in packages"
   echo "       ./t2 list | available		list all available packages"
   echo "       ./t2 sections			list package sections / groups"
@@ -71,29 +71,33 @@ if [ "$1" = "--help-long" -o "$1" = "--help=install" ]; then
   echo "  test for \$T2SDE environment variable, and if so, see whats in the "
   echo "  file '/etc/SDE-LOCATION' and wheather current './t2' directory is "
   echo "  already present, and what the default is (un-remarked line #), and "
-  echo "  if '--force install' then actually write data to the system, other-"
-  echo "  wise its just a dry-run ('--dry-run install' same as 'install')."
+  echo "  if '-force install' then actually write data to the system, other-"
+  echo "  wise its just a dry-run ('-dry-run install' same as 'install')."
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=update" ]; then
   echo "./t2 update"
   echo "  checks to see if './t2' directory is a repository, if so then do "
   echo "  'svn update' if its an SVN repo, or 'git pull' if its GIT repo."
+  echo "  Doing a '-dry-run update' will tell you how the update will be "
+  echo "  done, and what type of T2SDE you are using (SVN, GIT, fixed)."
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=upgrade" ]; then
   echo "./t2 upgrade"
-  echo "  runs 'scripts/Emerge-Pkg -missing=yes -system', which is the same" 
-  echo "  as 'scripts/Emerge-Pkg -dry-run -missing=yes -system', builds from "
-  echo "  source, downloads if not already present in 'download/mirror/?/..'."
-  echo "  you can pre-empt mirror download, by linking 'mirror' to a folder "
-  echo "  that already contains a copy of download mirror, which may include "
-  echo "  previously download sources that are _not_ on the mirror server. The "
-  echo "  layout of the mirror folder is the same as the download mirror: "
+  echo "  runs 'scripts/Emerge-Pkg -missing=yes -system', and re-tries any" 
+  echo "  previously failed package builds, building from source, downloads "
+  echo "  if not already present in 'download/mirror/?/..'.  You can pre-empt "
+  echo "  mirror download, by linking 'mirror' to a folder that already contains "
+  echo "  a copy of download mirror, which may include previously download "
+  echo "  sources that are _not_ on the mirror server.  The layout of the mirror "
+  echo "  folder is the same as the download mirror: "
   echo "  http://dl.t2sde.org/mirror/trunk/"
-  echo "  be aware that the size of the current download mirror is 32G and that "
+  echo "  Be aware that the size of the current download mirror is 32G and that "
   echo "  does not include large packages (like 'chromium') or packages that "
   echo "  change often (eg. 'firefox', 'gcc', 'clang', 'qt6-base' etc)."
+  echo "  Doing a '-dry-run ugrade is the same running the following: "
+  echo "  'scripts/Emerge-Pkg -dry-run -missing=yes -system' " 
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=install-pkg" ]; then
@@ -249,6 +253,7 @@ fi
 
 if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
+if [ -z "$SDE_DRYRUN" ]; then
   if [ -d .svn ]; then
     svn update
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
@@ -258,6 +263,18 @@ if [ "$1" = "update" ]; then
   else
     echo "T2SDE Update: not a repository"
   fi
+else
+  if [ -d .svn ]; then
+    echo "svn update"
+    SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
+  elif [ -d .git ]; then
+    echo "git pull"
+    SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
+  else
+    echo "T2SDE Update: not a repository"
+#TODO figure out where the SVN revision is stored, when its not a repo
+  fi
+fi
   echo "Revision:${SDE_REVISION}"
   exit
 fi
@@ -269,7 +286,7 @@ fi
 
 if [ "$1" = "install" -a ! -z "$2" ]; then
   shift
-  scripts/Emerge-Pkg $SDE_FORCE -missing=only $@ 
+  scripts/Emerge-Pkg ${SDE_FORCE} ${SDE_DRYRUN} -missing=only $@ 
   exit
 fi
 
@@ -281,7 +298,8 @@ if [ "$1" = "remove" -a ! -z "$2" ]; then
   [ ! -f "${SDE_ADM}/flists/$2" ] && echo "package not found: $1"
 
   cat "${SDE_ADM}/flists/$2"
-  
+#TODO record removal (flist,desc,cache,9-log) into 'adm/removed/YYMMDDHHMMSS/{pgk}/*', 
+#     then iterate over 'adm/flists/{pkg}.flist' list with 'rm -rf'
   exit
 fi
 
@@ -299,7 +317,7 @@ if [ "$1" = "list" -o "$1" = "available" ]; then
     exit
   fi
 
-  # output format compatible with 'apt-cache search _regex_'
+  # output format compatible with 'apt-cache search _regex_' (+" [V] ver_no")
   if [ "$1" = "list" ]; then
     P="$(find package/ -type d | grep -E "^[[:alnum:]]+/[[:alnum:]]+/[[:alnum:]]+")"
     for F in $P; do
@@ -330,7 +348,7 @@ if [ "$1" = "--list" -o "$1" = "installed" ]; then
     exit
   fi
 
-  # output format compatible with 'dpkg --list'
+  # output format compatible with 'dpkg --list' (ARCH comes from 00-dirtree)
   if [ "$1" = "--list" ]; then
     echo "'dpkg --list' compatible output"
     P="$(ls -1 "${SDE_ADM}/packages/")"
