@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406151104"
+T2_CLI_VERSION="2406171509"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -21,29 +21,54 @@ if [ "$1" = "--dry-run" -o "$1" = "-dry-run" -o "$1" = "dry-run" ]; then
   shift
 fi
 
+SDE_BACKUP=""
+if [ "$1" = "--backup" -o "$1" = "-backup" -o "$1" = "backup" ]; then
+  SDE_BACKUP="-backup"
+  shift
+fi
+
+if [ "$1" = "--force" -o "$1" = "-force" -o "$1" = "force" ]; then
+  SDE_FORCE="-force"
+  shift
+fi
+
+if [ -n "$SDE_DRYRUN" -a -n "$SDE_FORCE" ]; then
+  echo " '-dry-run' and '-force' are mutually exclusive."
+  exit
+fi
+
+if [ -n "$SDE_BACKUP" -a -n "$SDE_FORCE" ]; then
+  echo " '-backup' and '-force' are mutually exclusive."
+  exit
+fi
+
 echo "T2SDE Package Manager"
 echo "\$T2SDE: ${T2SDE_installed}"
 
 if [ -z "$1" -o "$1" = "--help" ]; then
-  echo "usage: ./t2 info			show information about T2SDE"
-  echo "       ./t2 [-dry-run] install		test add location to system as default"
-  echo "       ./t2 -force install		add location to system as default"
-  echo "       ./t2 update			update T2SDE to latest version"
-  echo "       ./t2 [-dryrun] upgrade		test upgrade T2 packages to latest"
-  echo "       ./t2 -force upgrade		actually upgrade installed T2 packages"
-  echo "       ./t2 install _pkg_		install package name _pkg_"
-  echo "       ./t2 -dry-run install _pkg_	test install package name _pkg_"
-  echo "       ./t2 -force install _pkg_	re-install package name _pkg_"
-  echo "       ./t2 search _txt_		search for _txt_ in packages"
-  echo "       ./t2 list | available		list all available packages"
-  echo "       ./t2 sections			list package sections / groups"
-  echo "       ./t2 --list | installed		list installed packages"
-  echo "       ./t2 --help-long			show underlying execution in-depth"
-  echo "       ./t2 --help=_help_ 		show individual option in-depth"
-  echo "       ./t2 --help=install-pkg		show package install in-depth"
-  echo "       ./t2 --vesion			show script version"
-  echo "_pkg_: package name"
-  echo "_help_: info install update upgrade install-pkg search available installed"
+  echo "usage:"
+  echo " ./t2 info				show information about T2SDE"
+  echo " ./t2 [-dry-run] install		test add location to system as default"
+  echo " ./t2 -force install			add location to system as default"
+  echo " ./t2 update				update T2SDE to latest version"
+  echo " ./t2 -dryrun upgrade			test upgrade T2 packages to latest"
+  echo " ./t2 [-force] upgrade			actually upgrade installed T2 packages"
+  echo " ./t2 install _pkg_			install package name _pkg_"
+  echo " ./t2 -dry-run install _pkg_		test install package named _pkg_"
+  echo " ./t2 -force install _pkg_		re-install package named _pkg_"
+  echo " ./t2 [-force|-backup] remove _pkg_	remove package named _pkg_"
+  echo " ./t2 search _txt_			search for _txt_ in packages"
+  echo " ./t2 list | available			list all available packages"
+  echo " ./t2 sections				list package sections / groups"
+  echo " ./t2 --list | installed		list installed packages"
+  echo " ./t2 --help-more			show more help, related to Emerge-Pkg etc"
+  echo " ./t2 --help-long			show underlying execution in-depth"
+  echo " ./t2 --help=_help_ 			show individual option in-depth"
+  echo " ./t2 --help=install-pkg		show package install in-depth"
+  echo " ./t2 --vesion				show script version"
+  echo " _pkg_: package name"
+  echo "_help_: info install remove update upgrade install-pkg remove-pkg search "
+  echo "        available installed"
   exit
 fi
 
@@ -115,7 +140,13 @@ fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=remove-pkg" ]; then
   echo "./t2 remove _pkg_"
-  echo "  (coming soon)"
+  echo "  if '_pkg_' name is installed, remove files found in 'adm/flists/_pkg_' "
+  echo "  By default, copy ADM _pkg_ files to 'adm/removed/YYMMDDHHMMSS/_pkg_'"
+  echo "./t2 -backup remove _pkg_"
+  echo "  same as above, but archive non-ADM files with '.tar.gz' as well"
+  echo "./t2 -force remove"
+  echo "  will not record the removal of named '_pkg_', just delete everything"
+  echo "NOTE: there is not Emerge-Pkg equivalent for 'remove'."
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=search" ]; then
@@ -255,7 +286,51 @@ if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
 if [ -z "$SDE_DRYRUN" ]; then
   if [ -d .svn ]; then
-    svn update
+    SDE_UPDATE="$(svn update 2>&1)"
+    if [ $? -gt 0 ]; then
+      E="$(echo "$SDE_UPDATE" | tail -n 2)"
+      if [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
+        echo "no internet"
+      elif [ -n "$(echo "$E" | tail -n 1 | grep "HTTP status" > /dev/null)" ]; then
+        echo "server error"
+      fi
+    else
+      A="$(echo "$SDE_UPDATE" | grep "^A  ")"
+      U="$(echo "$SDE_UPDATE" | grep "^U  ")"
+      M="$(echo "$SDE_UPDATE" | grep "^M  ")"
+      R="$(echo "$SDE_UPDATE" | grep "^R  ")"
+      if [ -z "$A$U$M$R" ]; then
+        echo "Nothing to update"
+      fi
+      if [ -n "$M" ]; then
+        echo "Moved Pacakges:"; I=0
+        for P in $(echo "$M" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
+          echo "  $P"; I=$(($I + 1))
+        done
+        echo "$O MOVED packages"
+      fi
+      if [ -n "$U" ]; then
+        echo "Updated Pacakges:"; I=0
+        for P in $(echo "$U" | grep "\.desc$|\.cache$|\.conf$" | cut -d \/ -f 2-3 | sort --unique); do
+          echo "  $P"; I=$(($I + 1))
+        done
+        echo "$O UPDATED packages"
+      fi
+      if [ -n "$R" ]; then
+        echo "Removed Pacakges:"; I=0
+        for P in $(echo "$R" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
+          echo "  $P"; I=$(($I + 1))
+        done
+        echo "$O DELETED packages"
+      fi
+      if [ -n "$A" ]; then
+        echo "Added Pacakges:"; I=0
+        for P in $(echo "$A" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
+          echo "  $P"; I=$(($I + 1))
+        done
+        echo "$O NEW packages"
+      fi
+    fi
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
   elif [ -d .git ]; then
     git pull
@@ -372,4 +447,3 @@ if [ "$1" = "--list" -o "$1" = "installed" ]; then
 fi
 
 exit
-
