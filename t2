@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406171509"
+T2_CLI_VERSION="2406180956"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -307,28 +307,28 @@ if [ -z "$SDE_DRYRUN" ]; then
         for P in $(echo "$M" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
           echo "  $P"; I=$(($I + 1))
         done
-        echo "$O MOVED packages"
+        echo "$I MOVED packages"
       fi
       if [ -n "$U" ]; then
         echo "Updated Pacakges:"; I=0
         for P in $(echo "$U" | grep "\.desc$|\.cache$|\.conf$" | cut -d \/ -f 2-3 | sort --unique); do
           echo "  $P"; I=$(($I + 1))
         done
-        echo "$O UPDATED packages"
+        echo "$I UPDATED packages"
       fi
       if [ -n "$R" ]; then
         echo "Removed Pacakges:"; I=0
         for P in $(echo "$R" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
           echo "  $P"; I=$(($I + 1))
         done
-        echo "$O DELETED packages"
+        echo "$I DELETED packages"
       fi
       if [ -n "$A" ]; then
         echo "Added Pacakges:"; I=0
         for P in $(echo "$A" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
           echo "  $P"; I=$(($I + 1))
         done
-        echo "$O NEW packages"
+        echo "$I NEW packages"
       fi
     fi
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
