@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406180956"
+T2_CLI_VERSION="2406260737"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -27,6 +27,12 @@ if [ "$1" = "--backup" -o "$1" = "-backup" -o "$1" = "backup" ]; then
   shift
 fi
 
+SDE_LAST=""
+if [ "$1" = "--last" -o "$1" = "-last" -o "$1" = "last" ]; then
+  SDE_LAST="-last"
+  shift
+fi
+
 if [ "$1" = "--force" -o "$1" = "-force" -o "$1" = "force" ]; then
   SDE_FORCE="-force"
   shift
@@ -42,7 +48,7 @@ if [ -n "$SDE_BACKUP" -a -n "$SDE_FORCE" ]; then
   exit
 fi
 
-echo "T2SDE Package Manager"
+echo "T2SDE Manager"
 echo "\$T2SDE: ${T2SDE_installed}"
 
 if [ -z "$1" -o "$1" = "--help" ]; then
@@ -50,7 +56,8 @@ if [ -z "$1" -o "$1" = "--help" ]; then
   echo " ./t2 info				show information about T2SDE"
   echo " ./t2 [-dry-run] install		test add location to system as default"
   echo " ./t2 -force install			add location to system as default"
-  echo " ./t2 update				update T2SDE to latest version"
+  echo " ./t2 [-last] update			update T2SDE to latest version"
+  echo " ./t2 -dryrun update			show actual command used to update T2SDE"
   echo " ./t2 -dryrun upgrade			test upgrade T2 packages to latest"
   echo " ./t2 [-force] upgrade			actually upgrade installed T2 packages"
   echo " ./t2 install _pkg_			install package name _pkg_"
@@ -106,6 +113,13 @@ if [ "$1" = "--help-long" -o "$1" = "--help=update" ]; then
   echo "  'svn update' if its an SVN repo, or 'git pull' if its GIT repo."
   echo "  Doing a '-dry-run update' will tell you how the update will be "
   echo "  done, and what type of T2SDE you are using (SVN, GIT, fixed)."
+  echo "./t2 -last update"
+  echo "  process the contents of '.last.update' which contains the output from "
+  echo "  the last successful update command ('svn update' or 'git pull')."
+  echo "./t2 -dry-run update"
+  echo "./t2 -dry-run -last update"
+  echo "  show the actual commands used to execute an update, and if the file "
+  echo "  '.last.update' is present (ie. if '-last update' can produce output)."
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=upgrade" ]; then
@@ -286,15 +300,21 @@ if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
 if [ -z "$SDE_DRYRUN" ]; then
   if [ -d .svn ]; then
-    SDE_UPDATE="$(svn update 2>&1)"
-    if [ $? -gt 0 ]; then
+# -last update svn
+    [ -n "$SDE_LAST" ] && SDE_UPDATE="$(cat .last.update)"
+    [ -z "$SDE_LAST" ] && SDE_UPDATE="$(svn update 2>&1)"
+    if [ -z "$SDE_UPDATE" ]; then
       E="$(echo "$SDE_UPDATE" | tail -n 2)"
-      if [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
+      if [ -n "$SDE_LAST" ] then
+        echo "not updated"
+      elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
         echo "no internet"
       elif [ -n "$(echo "$E" | tail -n 1 | grep "HTTP status" > /dev/null)" ]; then
         echo "server error"
       fi
     else
+# update svn
+      echo "$SDE_UPDATE" > .last.update
       A="$(echo "$SDE_UPDATE" | grep "^A  ")"
       U="$(echo "$SDE_UPDATE" | grep "^U  ")"
       M="$(echo "$SDE_UPDATE" | grep "^M  ")"
@@ -311,7 +331,8 @@ if [ -z "$SDE_DRYRUN" ]; then
       fi
       if [ -n "$U" ]; then
         echo "Updated Pacakges:"; I=0
-        for P in $(echo "$U" | grep "\.desc$|\.cache$|\.conf$" | cut -d \/ -f 2-3 | sort --unique); do
+	U="$(echo "$U" | xargs -I {} dirname "{}")"
+        for P in $(echo "$U" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
           echo "  $P"; I=$(($I + 1))
         done
         echo "$I UPDATED packages"
@@ -333,12 +354,33 @@ if [ -z "$SDE_DRYRUN" ]; then
     fi
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
   elif [ -d .git ]; then
-    git pull
+# -last update git
+    [ -n "$SDE_LAST" ] && SDE_UPDATE="$(cat .last.update)"
+    [ -z "$SDE_LAST" ] && SDE_UPDATE="$(git pull 2>&1)"
+    if [ -z "$SDE_UPDATE" ]; then
+      E="$(echo "$SDE_UPDATE" | tail -n 2)"
+      if [ -n "$SDE_LAST" ] then
+        echo "not updated"
+      elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
+        echo "no internet"
+      elif [ -n "$(echo "$E" | tail -n 1 | grep "HTTP status" > /dev/null)" ]; then
+        echo "server error"
+      fi
+    else
+# update git
+      echo "$SDE_UPDATE" > .last.update
+    fi
     SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
   else
     echo "T2SDE Update: not a repository"
   fi
 else
+# -dry-run -last update
+  if [ -n "$SDE_LAST" ]; then
+    [ -f ".last.update"] && echo "found: .last.update"
+    [ ! -f ".last.update" ] && echo "not found: .last.update"
+  fi
+# -dry-run update
   if [ -d .svn ]; then
     echo "svn update"
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
@@ -447,3 +489,4 @@ if [ "$1" = "--list" -o "$1" = "installed" ]; then
 fi
 
 exit
+
