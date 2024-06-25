@@ -1,6 +1,8 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406260737"
+T2_CLI_VERSION="2406260937"
+
+T2_LAST_UPDATE=".t2.last.update"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -298,14 +300,14 @@ fi
 
 if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
-if [ -z "$SDE_DRYRUN" ]; then
+if [ -z "${SDE_DRYRUN}" ]; then
   if [ -d .svn ]; then
 # -last update svn
-    [ -n "$SDE_LAST" ] && SDE_UPDATE="$(cat .last.update)"
-    [ -z "$SDE_LAST" ] && SDE_UPDATE="$(svn update 2>&1)"
-    if [ -z "$SDE_UPDATE" ]; then
-      E="$(echo "$SDE_UPDATE" | tail -n 2)"
-      if [ -n "$SDE_LAST" ] then
+    [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
+    [ -z "${SDE_LAST}" ] && SDE_UPDATE="$(svn update 2>&1)"
+    if [ -z "${SDE_UPDATE}" ]; then
+      E="$(echo "${SDE_UPDATE}" | tail -n 2)"
+      if [ -n "${SDE_LAST}" ] then
         echo "not updated"
       elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
         echo "no internet"
@@ -314,11 +316,11 @@ if [ -z "$SDE_DRYRUN" ]; then
       fi
     else
 # update svn
-      echo "$SDE_UPDATE" > .last.update
-      A="$(echo "$SDE_UPDATE" | grep "^A  ")"
-      U="$(echo "$SDE_UPDATE" | grep "^U  ")"
-      M="$(echo "$SDE_UPDATE" | grep "^M  ")"
-      R="$(echo "$SDE_UPDATE" | grep "^R  ")"
+      echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
+      A="$(echo "${SDE_UPDATE}" | grep "^A  ")"
+      U="$(echo "${SDE_UPDATE}" | grep "^U  ")"
+      M="$(echo "${SDE_UPDATE}" | grep "^M  ")"
+      R="$(echo "${SDE_UPDATE}" | grep "^R  ")"
       if [ -z "$A$U$M$R" ]; then
         echo "Nothing to update"
       fi
@@ -355,11 +357,11 @@ if [ -z "$SDE_DRYRUN" ]; then
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
   elif [ -d .git ]; then
 # -last update git
-    [ -n "$SDE_LAST" ] && SDE_UPDATE="$(cat .last.update)"
-    [ -z "$SDE_LAST" ] && SDE_UPDATE="$(git pull 2>&1)"
-    if [ -z "$SDE_UPDATE" ]; then
-      E="$(echo "$SDE_UPDATE" | tail -n 2)"
-      if [ -n "$SDE_LAST" ] then
+    [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
+    [ -z "${SDE_LAST}" ] && SDE_UPDATE="$(git pull 2>&1)"
+    if [ -z "${SDE_UPDATE}" ]; then
+      E="$(echo "${SDE_UPDATE}" | tail -n 2)"
+      if [ -n "${SDE_LAST}" ] then
         echo "not updated"
       elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
         echo "no internet"
@@ -368,7 +370,8 @@ if [ -z "$SDE_DRYRUN" ]; then
       fi
     else
 # update git
-      echo "$SDE_UPDATE" > .last.update
+      echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
+echo "${SDE_UPDATE}"
     fi
     SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
   else
@@ -376,10 +379,8 @@ if [ -z "$SDE_DRYRUN" ]; then
   fi
 else
 # -dry-run -last update
-  if [ -n "$SDE_LAST" ]; then
-    [ -f ".last.update"] && echo "found: .last.update"
-    [ ! -f ".last.update" ] && echo "not found: .last.update"
-  fi
+  [ -f "${T2_LAST_UPDATE}"] && echo "found: ${T2_LAST_UPDATE}" && echo "./t2 -last upadte: yes"
+  [ ! -f "${T2_LAST_UPDATE}" ] && echo "not found: ${T2_LAST_UPDATE}" && echo "./t2 -last update: no"
 # -dry-run update
   if [ -d .svn ]; then
     echo "svn update"
