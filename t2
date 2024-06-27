@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406260937"
+T2_CLI_VERSION="2406272030"
 
 T2_LAST_UPDATE=".t2.last.update"
 
@@ -307,7 +307,7 @@ if [ -z "${SDE_DRYRUN}" ]; then
     [ -z "${SDE_LAST}" ] && SDE_UPDATE="$(svn update 2>&1)"
     if [ -z "${SDE_UPDATE}" ]; then
       E="$(echo "${SDE_UPDATE}" | tail -n 2)"
-      if [ -n "${SDE_LAST}" ] then
+      if [ -n "${SDE_LAST}" ]; then
         echo "not updated"
       elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
         echo "no internet"
@@ -316,18 +316,23 @@ if [ -z "${SDE_DRYRUN}" ]; then
       fi
     else
 # update svn
-      echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
       A="$(echo "${SDE_UPDATE}" | grep "^A  ")"
       U="$(echo "${SDE_UPDATE}" | grep "^U  ")"
       M="$(echo "${SDE_UPDATE}" | grep "^M  ")"
       R="$(echo "${SDE_UPDATE}" | grep "^R  ")"
       if [ -z "$A$U$M$R" ]; then
         echo "Nothing to update"
+      else
+        echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
       fi
       if [ -n "$M" ]; then
         echo "Moved Pacakges:"; I=0
         for P in $(echo "$M" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
-          echo "  $P"; I=$(($I + 1))
+          B="$(basename "$P")"
+          D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
+#          echo "  $P : $D"
+          printf "  %35s : $D\n" "$P"
+          I=$(($I + 1))
         done
         echo "$I MOVED packages"
       fi
@@ -335,21 +340,34 @@ if [ -z "${SDE_DRYRUN}" ]; then
         echo "Updated Pacakges:"; I=0
 	U="$(echo "$U" | xargs -I {} dirname "{}")"
         for P in $(echo "$U" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
-          echo "  $P"; I=$(($I + 1))
+          B="$(basename "$P")"
+          D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
+#          echo "  $P : $D"
+          printf "  %35s : $D\n" "$P"
+          I=$(($I + 1))
         done
         echo "$I UPDATED packages"
       fi
       if [ -n "$R" ]; then
         echo "Removed Pacakges:"; I=0
         for P in $(echo "$R" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
-          echo "  $P"; I=$(($I + 1))
+#          L="$(echo "$P" | wc -L)"
+#          B="$(basename "$P")"
+#          D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
+#          echo "  $P : $D"
+          printf "  %35s : \n" "$P"
+          I=$(($I + 1))
         done
         echo "$I DELETED packages"
       fi
       if [ -n "$A" ]; then
         echo "Added Pacakges:"; I=0
         for P in $(echo "$A" | grep -v "\." | cut -d \/ -f 2- | sort --unique); do
-          echo "  $P"; I=$(($I + 1))
+          B="$(basename "$P")"
+          D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
+#          echo "  $P : $D"
+          printf "  %35s : $D\n" "$P"
+          I=$(($I + 1))
         done
         echo "$I NEW packages"
       fi
@@ -361,7 +379,7 @@ if [ -z "${SDE_DRYRUN}" ]; then
     [ -z "${SDE_LAST}" ] && SDE_UPDATE="$(git pull 2>&1)"
     if [ -z "${SDE_UPDATE}" ]; then
       E="$(echo "${SDE_UPDATE}" | tail -n 2)"
-      if [ -n "${SDE_LAST}" ] then
+      if [ -n "${SDE_LAST}" ]; then
         echo "not updated"
       elif [ -n "$(echo "$E" | head -n 1 | grep "Unable to connect" > /dev/null)" ]; then
         echo "no internet"
@@ -370,7 +388,7 @@ if [ -z "${SDE_DRYRUN}" ]; then
       fi
     else
 # update git
-      echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
+      [ -z "${SDE_LAST}" ] && echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
 echo "${SDE_UPDATE}"
     fi
     SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
@@ -379,14 +397,14 @@ echo "${SDE_UPDATE}"
   fi
 else
 # -dry-run -last update
-  [ -f "${T2_LAST_UPDATE}"] && echo "found: ${T2_LAST_UPDATE}" && echo "./t2 -last upadte: yes"
+  [ -f "${T2_LAST_UPDATE}" ] && echo "found: ${T2_LAST_UPDATE}" && echo "./t2 -last upadte: yes"
   [ ! -f "${T2_LAST_UPDATE}" ] && echo "not found: ${T2_LAST_UPDATE}" && echo "./t2 -last update: no"
 # -dry-run update
   if [ -d .svn ]; then
-    echo "svn update"
+    echo "command: svn update"
     SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
   elif [ -d .git ]; then
-    echo "git pull"
+    echo "command git pull"
     SDE_REVISION="$(git show | grep -m 1 "git-svn-id: " | cut -d \  -f 6 | cut -d \@ -f 2)"
   else
     echo "T2SDE Update: not a repository"
@@ -404,7 +422,9 @@ fi
 
 if [ "$1" = "install" -a ! -z "$2" ]; then
   shift
-  scripts/Emerge-Pkg ${SDE_FORCE} ${SDE_DRYRUN} -missing=only $@ 
+  echo
+  echo "scripts/Emerge-Pkg ${SDE_FORCE} ${SDE_DRYRUN} -missing=only $@"
+  scripts/Emerge-Pkg ${SDE_FORCE} ${SDE_DRYRUN} -missing=only $@
   exit
 fi
 
