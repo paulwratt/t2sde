@@ -1,0 +1,127 @@
+Updating '.':
+D    source
+A    package/contrib/ags
+A    package/contrib/fuzzel
+A    package/contrib/typescript
+U    package/kde/breeze-gtk/breeze-gtk.desc
+U    package/kde/discover/discover.desc
+U    package/kde/flatpak-kcm/flatpak-kcm.desc
+U    package/kde/kde-cli-tools/kde-cli-tools.desc
+U    package/kde/kdecoration/kdecoration.desc
+U    package/kde/kglobalacceld/kglobalacceld.desc
+U    package/kde/kmenuedit/kmenuedit.desc
+U    package/kde/kscreen/kscreen.desc
+U    package/kde/ksystemstats/ksystemstats.desc
+U    package/containers/docker-cli/docker-cli.desc
+U    package/containers/docker-compose/docker-compose.desc
+A    package/contrib/ags/ags.cache
+A    package/contrib/ags/ags.desc
+U    package/contrib/blosc/blosc.desc
+A    package/contrib/fuzzel/fuzzel.cache
+A    package/contrib/fuzzel/fuzzel.desc
+U    package/contrib/govc/govc.desc
+U    package/contrib/parallel/parallel.desc
+U    package/contrib/pugixml/pugixml.desc
+U    package/kde/kdeplasma-addons/kdeplasma-addons.desc
+U    package/kde/kinfocenter/kinfocenter.desc
+U    package/kde/kpipewire/kpipewire.desc
+U    package/kde/kscreenlocker/kscreenlocker.desc
+U    package/kde/kwallet-pam/kwallet-pam.desc
+U    package/kde/kwayland-integration/kwayland-integration.desc
+U    package/kde/libkscreen/libkscreen.desc
+A    package/contrib/typescript/typescript.cache
+A    package/contrib/typescript/typescript.desc
+U    package/develop/gdal/gdal.desc
+U    package/develop/github-cli/github-cli.desc
+U    package/develop/protobuf/protobuf.desc
+U    package/develop/tbb/tbb.desc
+U    package/develop/tomlplusplus/tomlplusplus.desc
+U    package/filesystem/btrfs-progs/btrfs-progs.desc
+A    package/games/simgear/hotfix-boost-1.81.patch
+U    package/go/hugo/hugo.desc
+U    package/graphic/viewnior/viewnior.conf
+U    package/java/openjdk/openjdk.conf
+U    package/kde/bluedevil/bluedevil.desc
+U    package/kde/breeze/breeze.desc
+U    package/kde/breeze-grub/breeze-grub.desc
+U    package/kde/breeze-plymouth/breeze-plymouth.desc
+U    package/kde/drkonqi/drkonqi.desc
+U    package/kde/kactivitymanagerd/kactivitymanagerd.desc
+U    package/kde/kde-gtk-config/kde-gtk-config.desc
+U    package/kde/kgamma/kgamma.desc
+U    package/kde/kirigami-addons/kirigami-addons.desc
+U    package/kde/krita/krita.desc
+U    package/kde/ksshaskpass/ksshaskpass.desc
+U    package/kde/kwayland/kwayland.desc
+U    package/kde/layer-shell-qt/layer-shell-qt.desc
+U    package/kde/milou/milou.desc
+U    package/kde/kwin/kwin.desc
+U    package/kde/libksysguard/libksysguard.desc
+U    package/kde/oxygen/oxygen.desc
+U    package/kde/plasma-browser-integration/plasma-browser-integration.desc
+U    package/kde/ocean-sound-theme/ocean-sound-theme.desc
+U    package/kde/plasma-activities-stats/plasma-activities-stats.desc
+U    package/kde/plasma-firewall/plasma-firewall.desc
+U    package/kde/plasma-activities/plasma-activities.desc
+U    package/kde/kwrited/kwrited.desc
+U    package/kde/libplasma/libplasma.desc
+U    package/kde/oxygen-sounds/oxygen-sounds.desc
+U    package/kde/plasma-desktop/plasma-desktop.desc
+U    package/textproc/libxml/libxml.desc
+A    package/wayland/xdg-desktop-portal-hyprland
+A    package/wayland/xdg-desktop-portal-hyprland/xdg-desktop-portal-hyprland.cache
+   C t2
+U    package/kde/plasma-disks/plasma-disks.desc
+U    package/kde/plasma-mobile/plasma-mobile.desc
+U    package/kde/plasma-sdk/plasma-sdk.desc
+U    package/kde/plasma-welcome/plasma-welcome.desc
+U    package/kde/plymouth-kcm/plymouth-kcm.desc
+U    package/kde/qqc2-breeze-style/qqc2-breeze-style.desc
+U    package/kde/xdg-desktop-portal-kde/xdg-desktop-portal-kde.desc
+U    package/multimedia/libopenshot/libopenshot.desc
+U    package/multimedia/openshot/openshot.desc
+U    package/kde/plasma-integration/plasma-integration.desc
+U    package/kde/plasma-pa/plasma-pa.desc
+U    package/kde/plasma-vault/plasma-vault.desc
+U    package/kde/plasma5support/plasma5support.desc
+U    package/kde/print-manager/print-manager.desc
+U    package/kde/wacomtablet/wacomtablet.desc
+U    package/lua/lua/lua.desc
+U    package/kde/plasma-nm/plasma-nm.desc
+U    package/kde/plasma-thunderbolt/plasma-thunderbolt.desc
+U    package/kde/plasma-workspace-wallpapers/plasma-workspace-wallpapers.desc
+U    package/kde/powerdevil/powerdevil.desc
+U    package/kde/systemsettings/systemsettings.desc
+A    package/kernel/linux/hotfix-intel-meteor-lake-epp.patch
+U    package/multimedia/live/live.desc
+U    package/python/setuptools/setuptools.desc
+U    package/wayland/hyprland/hyprland.conf
+A    package/wayland/xdg-desktop-portal-hyprland/xdg-desktop-portal-hyprland.desc
+U    package/kde/plasma-nano/plasma-nano.desc
+U    package/kde/plasma-systemmonitor/plasma-systemmonitor.desc
+U    package/kde/plasma-workspace/plasma-workspace.desc
+U    package/kde/polkit-kde-agent-1/polkit-kde-agent-1.desc
+U    package/kde/sddm-kcm/sddm-kcm.desc
+A    package/kernel/linux/hotfix-intel-epb-default.patch
+U    package/multimedia/libopenshot-audio/libopenshot-audio.desc
+U    package/multimedia/wireplumber/wireplumber.desc
+U    package/wayland/hyprland/hyprland.cache
+A    package/wayland/hyprpaper/hotfix-xdg-runtimedir.patch
+A    package/multimedia/openscenegraph/hotfix-no-ffmpeg.patch
+U    package/textproc/iniparser/iniparser.desc
+A    package/wayland/hyprpaper/hotfix-libjpeg.patch
+
+Fetching external item into 'misc/luabash/build':
+Updated external to revision 72.
+
+At revision 69755.
+Summary of conflicts:
+  Tree conflicts: 1
+Searching tree conflict details for 't2' in repository:
+
+Checking r69696... done
+Tree conflict on 't2':
+A new file appeared during update to r69755; it was added by rene in r69696.
+An unversioned file was found in the working copy.
+Summary of conflicts:
+  Tree conflicts: 1
