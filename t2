@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406272030"
+T2_CLI_VERSION="2406272343"
 
 T2_LAST_UPDATE=".t2.last.update"
 
@@ -67,6 +67,7 @@ if [ -z "$1" -o "$1" = "--help" ]; then
   echo " ./t2 -force install _pkg_		re-install package named _pkg_"
   echo " ./t2 [-force|-backup] remove _pkg_	remove package named _pkg_"
   echo " ./t2 search _txt_			search for _txt_ in packages"
+  echo " ./t2 find _txt_			search using Find-Pkg _txt_"
   echo " ./t2 list | available			list all available packages"
   echo " ./t2 sections				list package sections / groups"
   echo " ./t2 --list | installed		list installed packages"
@@ -165,10 +166,16 @@ if [ "$1" = "--help-long" -o "$1" = "--help=remove-pkg" ]; then
   echo "NOTE: there is not Emerge-Pkg equivalent for 'remove'."
 fi
 
-if [ "$1" = "--help-long" -o "$1" = "--help=search" ]; then
+if [ "$1" = "--help-long"  -o "$1" = "--help=search" -o "$1" = "--help=find" ]; then
   echo "./t2 search _txt_"
-  echo "  performs './t2 list | grep @$', so it is 'apt-cach search ..' compatible "
+  echo "  performs './t2 list | grep @$', so it is 'apt-cache search ..' compatible "
   echo "  output, Name, Description, and bonus Version."
+fi
+
+if [ "$1" = "--help-long"  -o "$1" = "--help=search" -o "$1" = "--help=find" ]; then
+  echo "./t2 find _txt_"
+  echo "  performs 'scripts/Find-Pkg @$', checks Name and Description, multi-line, "
+  echo "  not just short descriptions like 'search', but does not show version info"
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=available" ]; then
@@ -445,6 +452,14 @@ if [ "$1" = "search" ]; then
   [ -z "$2" ] && echo "E: you must have at least one search pattern" && exit
   shift
   ./t2 list | tail -n +2 | grep $@
+  exit
+fi
+
+if [ "$1" = "find" -a ! -z "$2" ]; then
+  shift
+  echo
+  echo "scripts/Find-Pkg $@"
+  scripts/Find-Pkg $@
   exit
 fi
 
