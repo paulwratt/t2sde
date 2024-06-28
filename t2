@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406290400"
+T2_CLI_VERSION="2406290441"
 
 SDE_DATE="$(date +%y%m%d%H%M%S)"
 T2_SDE_UPDATE=".t2.${SDE_DATE}.update"
@@ -139,9 +139,9 @@ if [ "$1" = "--help-long" -o "$1" = "--help=update" ]; then
   echo "  '.last.update' is present (ie. if '-last update' can produce output)."
   echo "  '.prev.update' is present (ie. if '-prev update' can produce output)."
   echo "./t2 -prev update"
-  echo "./t2 -prev update 2406291052"
+  echo "./t2 -prev update 240629101552"
   echo "  if '.last.update' exists during 'update' copy that to '.prev.update', and "
-  echo "  at the same time, record output to '.YYMMDDHHSS.update'."
+  echo "  at the same time, record output to '.YYMMDDHHMMSS.update'."
   ls .*.update 2> /dev/null
 fi
 
@@ -329,11 +329,11 @@ if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
 # -last update svn
   [ -n "${SDE_LAST}" -a -n "${SDE_PREV}" ] && echo "'-last' and '-prev' are mutually exclusive: one or other or neither, but not both" && exit
-  [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
-  [ -n "${SDE_PREV}" ] && SDE_UPDATE="$(cat ${T2_PREV_UPDATE})"
-  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -f "$2" ] && SDE_UPDATE="$(cat "$2")"
-  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -f ".t2.$2.update" ] && SDE_UPDATE="$(cat ".t2.$2.update")"
-  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -z "${SDE_UPDATE}" ] && echo "could not find: '.t2.$2.update' or '$2')" && exit
+  [ -n "${SDE_LAST}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
+  [ -n "${SDE_PREV}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_PREV_UPDATE})"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e "$2" ] && SDE_UPDATE="$(cat "$2")"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e ".t2.$2.update" ] && SDE_UPDATE="$(cat ".t2.$2.update")"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -z "${SDE_UPDATE}" ] && echo "could not find: '.t2.$2.update' or '$2')" && exit
 if [ -z "${SDE_DRYRUN}" ]; then
   [ -n "${SDE_LAST}"  ]  
   if [ -d .svn ]; then
@@ -357,9 +357,9 @@ if [ -z "${SDE_DRYRUN}" ]; then
       if [ -z "$A$U$M$R" ]; then
         echo "Nothing to update"
       else
-        [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" -a -f "${T2_LAST_UPDATE}" ] && cp "${T2_LAST_UPDATE}" "${T2_PREV_UPDATE}"
-        echo "${SDE_UPDATE}" > "${T2_LAST_UPDATE}"
-        echo "${SDE_UPDATE}" > "${T2_SDE_UPDATE}"
+        [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" -a -e "${T2_LAST_UPDATE}" ] && cp "${T2_LAST_UPDATE}" "${T2_PREV_UPDATE}"
+        [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" ] && echo "${SDE_UPDATE}" > "${T2_LAST_UPDATE}"
+        [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" ] && echo "${SDE_UPDATE}" > "${T2_SDE_UPDATE}"
       fi
       if [ -n "$M" ]; then
         echo "Moved Pacakges:"; I=0
