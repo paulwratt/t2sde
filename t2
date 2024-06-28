@@ -2,7 +2,7 @@
 
 T2_CLI_VERSION="2406290400"
 
-SDE_DATE="$(date +%y%m%d%H%S)"
+SDE_DATE="$(date +%y%m%d%H%M%S)"
 T2_SDE_UPDATE=".t2.${SDE_DATE}.update"
 T2_LAST_UPDATE=".t2.last.update"
 T2_PREV_UPDATE=".t2.prev.update"
