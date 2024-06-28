@@ -1,8 +1,11 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406272343"
+T2_CLI_VERSION="2406290400"
 
+SDE_DATE="$(date +%y%m%d%h%s)"
+T2_SDE_UPDATE=".t2.${SDE_DATE}.update"
 T2_LAST_UPDATE=".t2.last.update"
+T2_PREV_UPDATE=".t2.prev.update"
 
 T2SDE="${T2SDE}"
 T2SDE_installed="${T2SDE}"
@@ -34,6 +37,18 @@ if [ "$1" = "--last" -o "$1" = "-last" -o "$1" = "last" ]; then
   SDE_LAST="-last"
   shift
 fi
+
+SDE_PREV=""
+if [ "$1" = "--prev" -o "$1" = "-prev" -o "$1" = "prev" ]; then
+  SDE_PREV="-prev"
+  shift
+fi
+if [ "$1" = "--previous" -o "$1" = "-previous" -o "$1" = "previous" ]; then
+  SDE_PREV="-prev"
+  shift
+fi
+SDE_DATE="$(date +%y%m%d%h%s)"
+SDE_UPDATE=".t2.${SDE_DATE}.update"
 
 if [ "$1" = "--force" -o "$1" = "-force" -o "$1" = "force" ]; then
   SDE_FORCE="-force"
@@ -120,9 +135,14 @@ if [ "$1" = "--help-long" -o "$1" = "--help=update" ]; then
   echo "  process the contents of '.last.update' which contains the output from "
   echo "  the last successful update command ('svn update' or 'git pull')."
   echo "./t2 -dry-run update"
-  echo "./t2 -dry-run -last update"
-  echo "  show the actual commands used to execute an update, and if the file "
+  echo "  show the actual T2SDE commands used to execute an update, and if the file "
   echo "  '.last.update' is present (ie. if '-last update' can produce output)."
+  echo "  '.prev.update' is present (ie. if '-prev update' can produce output)."
+  echo "./t2 -prev update"
+  echo "./t2 -prev update 2406291052"
+  echo "  if '.last.update' exists during 'update' copy that to '.prev.update', and "
+  echo "  at the same time, record output to '.YYMMDDHHSS.update'."
+  ls .*.update 2> /dev/null
 fi
 
 if [ "$1" = "--help-long" -o "$1" = "--help=upgrade" ]; then
@@ -307,11 +327,18 @@ fi
 
 if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
+# -last update svn
+  [ -n "${SDE_LAST}" -a -n "${SDE_PREV}" ] && echo "'-last' and '-prev' are mutually exclusive: one or other or neither, but not both" && exit
+  [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
+  [ -n "${SDE_PREV}" ] && SDE_UPDATE="$(cat ${T2_PREV_UPDATE})"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -f "$2" ] && SDE_UPDATE="$(cat "$2")"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -f ".t2.$2.update" ] && SDE_UPDATE="$(cat ".t2.$2.update")"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" -a -n "$2" -a -z "${SDE_UPDATE}" ] && echo "could not find: '.t2.$2.update' or '$2')" && exit
 if [ -z "${SDE_DRYRUN}" ]; then
+  [ -n "${SDE_LAST}"  ]  
   if [ -d .svn ]; then
 # -last update svn
-    [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
-    [ -z "${SDE_LAST}" ] && SDE_UPDATE="$(svn update 2>&1)"
+    [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" ] && SDE_UPDATE="$(svn update 2>&1)"
     if [ -z "${SDE_UPDATE}" ]; then
       E="$(echo "${SDE_UPDATE}" | tail -n 2)"
       if [ -n "${SDE_LAST}" ]; then
@@ -330,7 +357,9 @@ if [ -z "${SDE_DRYRUN}" ]; then
       if [ -z "$A$U$M$R" ]; then
         echo "Nothing to update"
       else
-        echo "${SDE_UPDATE}" > ${T2_LAST_UPDATE}
+        [ -z "${SDE_LAST}" -a -z "${SDE_PREV}" -a -f "${T2_LAST_UPDATE}" ] && cp "${T2_LAST_UPDATE}" "${T2_PREV_UPDATE}"
+        echo "${SDE_UPDATE}" > "${T2_LAST_UPDATE}"
+        echo "${SDE_UPDATE}" > "${T2_SDE_UPDATE}"
       fi
       if [ -n "$M" ]; then
         echo "Moved Pacakges:"; I=0
@@ -404,8 +433,11 @@ echo "${SDE_UPDATE}"
   fi
 else
 # -dry-run -last update
-  [ -f "${T2_LAST_UPDATE}" ] && echo "found: ${T2_LAST_UPDATE}" && echo "./t2 -last upadte: yes"
+  [ -f "${T2_LAST_UPDATE}" ] && echo "found: ${T2_LAST_UPDATE}" && echo "./t2 -last update: yes"
   [ ! -f "${T2_LAST_UPDATE}" ] && echo "not found: ${T2_LAST_UPDATE}" && echo "./t2 -last update: no"
+# -dry-run -prev update
+  [ -f "${T2_PREV_UPDATE}" ] && echo "found: ${T2_PREV_UPDATE}" && echo "./t2 -prev update: yes"
+  [ ! -f "${T2_PREV_UPDATE}" ] && echo "not found: ${T2_PREV_UPDATE}" && echo "./t2 -prev update: no"
 # -dry-run update
   if [ -d .svn ]; then
     echo "command: svn update"
