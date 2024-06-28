@@ -1,6 +1,6 @@
 #!/bin/bash
 
-T2_CLI_VERSION="2406290441"
+T2_CLI_VERSION="2406290618"
 
 SDE_DATE="$(date +%y%m%d%H%M%S)"
 T2_SDE_UPDATE=".t2.${SDE_DATE}.update"
@@ -329,10 +329,10 @@ if [ "$1" = "update" ]; then
   SDE_REVISION="unknown"
 # -last update svn
   [ -n "${SDE_LAST}" -a -n "${SDE_PREV}" ] && echo "'-last' and '-prev' are mutually exclusive: one or other or neither, but not both" && exit
-  [ -n "${SDE_LAST}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
-  [ -n "${SDE_PREV}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_PREV_UPDATE})"
-  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e "$2" ] && SDE_UPDATE="$(cat "$2")"
-  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e ".t2.$2.update" ] && SDE_UPDATE="$(cat ".t2.$2.update")"
+  [ -n "${SDE_LAST}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})" && SDE_REVISION="$(grep -m 1 "^At revision " "${T2_LAST_UPDATE}" | cut -d \  -f 3 | tr -d .)"
+  [ -n "${SDE_PREV}" -a -z "$2" ] && SDE_UPDATE="$(cat ${T2_PREV_UPDATE})" && SDE_REVISION="$(grep -m 1 "^At revision " "${T2_PREV_UPDATE}" | cut -d \  -f 3 | tr -d .)"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e "$2" ] && SDE_UPDATE="$(cat "$2")" && SDE_REVISION="$(grep -m 1 "^At revision " "$2" | cut -d \  -f 3 | tr -d .)"
+  [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -e ".t2.$2.update" ] && SDE_UPDATE="$(cat ".t2.$2.update")" && SDE_REVISION="$(grep -m 1 "^At revision " ".tr.$2.update" | cut -d \  -f 3 | tr -d .)"
   [ -n "${SDE_PREV}" -o -n "${SDE_LAST}" ] && [ -n "$2" -a -z "${SDE_UPDATE}" ] && echo "could not find: '.t2.$2.update' or '$2')" && exit
 if [ -z "${SDE_DRYRUN}" ]; then
   [ -n "${SDE_LAST}"  ]  
@@ -367,7 +367,9 @@ if [ -z "${SDE_DRYRUN}" ]; then
           B="$(basename "$P")"
           D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
 #          echo "  $P : $D"
-          printf "  %35s : $D\n" "$P"
+          P="$(echo "$P" | sed 's@/@ : @')"
+          printf "%37s : $D\n" "$P" | cut -c -$(($COLUMNS - 1))
+#          printf "  %35s : $D\n" "$P"
           I=$(($I + 1))
         done
         echo "$I MOVED packages"
@@ -379,7 +381,9 @@ if [ -z "${SDE_DRYRUN}" ]; then
           B="$(basename "$P")"
           D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
 #          echo "  $P : $D"
-          printf "  %35s : $D\n" "$P"
+          P="$(echo "$P" | sed 's@/@ : @')"
+	  printf "%37s : $D\n" "$P" | cut -c -$(($COLUMNS - 1))
+#         printf "  %35s : $D\n" "$P"
           I=$(($I + 1))
         done
         echo "$I UPDATED packages"
@@ -391,7 +395,9 @@ if [ -z "${SDE_DRYRUN}" ]; then
 #          B="$(basename "$P")"
 #          D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
 #          echo "  $P : $D"
-          printf "  %35s : \n" "$P"
+          P="$(echo "$P" | sed 's@/@ : @')"
+          printf "%37s : \n" "$P" | cut -c -$(($COLUMNS - 1))
+#          printf "  %35s : \n" "$P"
           I=$(($I + 1))
         done
         echo "$I DELETED packages"
@@ -402,13 +408,15 @@ if [ -z "${SDE_DRYRUN}" ]; then
           B="$(basename "$P")"
           D="$(cat "package/$P/$B.desc" | grep -m 1 "^\[I\] " | cut -c 5-)"
 #          echo "  $P : $D"
-          printf "  %35s : $D\n" "$P"
+          P="$(echo "$P" | sed 's@/@ : @')"
+          printf "%37s : $D\n" "$P" | cut -c -$(($COLUMNS - 1))
+#          printf "  %35s : \n" "$P"
           I=$(($I + 1))
         done
         echo "$I NEW packages"
       fi
     fi
-    SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
+    [ "${SDE_REVISION}" = "unknown" ] && SDE_REVISION="$(svn info | grep "^Revision: " | cut -d \  -f 2)"
   elif [ -d .git ]; then
 # -last update git
     [ -n "${SDE_LAST}" ] && SDE_UPDATE="$(cat ${T2_LAST_UPDATE})"
